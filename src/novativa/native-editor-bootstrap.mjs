@@ -12,8 +12,10 @@ const REQUIRED = Object.freeze([
 ]);
 
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const sameOriginPath = value => typeof value === 'string' && value.startsWith('/') &&
-    !value.startsWith('//') && !value.includes('\\') && !/[\r\n]/.test(value);
+const sameOriginPath = value => typeof value === 'string' &&
+    value.startsWith('/console/gaming/editor/native/') &&
+    !value.startsWith('//') && !value.includes('\\') && !/[\r\n\t#?]/.test(value) &&
+    !/%(?:2f|5c|0[0-9a-f]|7f)/i.test(value);
 
 export class NovativaNativeEditorUnavailable extends Error {
     constructor(code, details = []) {
@@ -35,7 +37,6 @@ export function inspectNovativaNativeEditorBootstrap(input, expectedProjectId) {
     if (!isRecord(response) ||
         response.schema !== 'novativa.gaming.editor.bootstrap.v1' ||
         response.environment !== 'dev' ||
-        !sameOriginPath('/api/projects/' + encodeURIComponent(String(expectedProjectId)) + '/gaming/editor/bootstrap') ||
         typeof expectedProjectId !== 'string' || !/^prj_[A-Za-z0-9_-]+$/.test(expectedProjectId) ||
         response.project_id !== expectedProjectId ||
         !isRecord(response.permissions) ||
