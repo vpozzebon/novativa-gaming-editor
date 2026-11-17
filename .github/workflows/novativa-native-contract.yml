@@ -1,0 +1,34 @@
+name: Novativa native Editor contract
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'src/novativa/**'
+      - 'test/novativa-*.test.mjs'
+      - 'docs/novativa-native-editor-backend-v1.md'
+      - '.github/workflows/novativa-native-contract.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'src/novativa/**'
+      - 'test/novativa-*.test.mjs'
+      - 'docs/novativa-native-editor-backend-v1.md'
+      - '.github/workflows/novativa-native-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check src/novativa/native-editor-bootstrap.mjs
+      - run: node --check src/novativa/canonical-scene-projection.mjs
+      - run: node --check src/novativa/native-hierarchy-client.mjs
+      - run: node --test test/novativa-native-bootstrap.test.mjs test/novativa-scene-projection.test.mjs test/novativa-native-hierarchy-client.test.mjs
