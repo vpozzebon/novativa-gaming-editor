@@ -20,6 +20,24 @@ Date: 2026-11-17. This repository is the **full upstream PlayCanvas Editor front
 - No identity, tokens, AWS, S3, DB access, or calls made by this module; no fallback to fake `window.config`.
 - This module does not activate native frontend; it is the checked gate for integration across Console/Platform.
 
+## Canonical read-only hierarchy projection (implemented and tested)
+
+`src/novativa/canonical-scene-projection.mjs` accepts only the real
+`gaming.editor.scene-document.v1` from the authenticated Gaming adapter. It
+rejects cross-game/scene data, PROD channel, non-local coordinate claims,
+duplicate IDs, malformed digests and out-of-bounds transforms. It returns
+`novativa.playcanvas.canonical-hierarchy.v1` as a bounded, immutable,
+read-only descriptor, **not** the PlayCanvas native scene document, without
+inventing world transforms or a second asset registry. One of the confirmed
+Racing billboards (`decor-08`) is the regression fixture with independent
+anchor-local transform.
+
+When backend document ownership/realtime is implemented, map these
+descriptors to the native PlayCanvas entity/asset model behind a server-side
+adapter. Do not submit native editor scene ops directly as Gaming events
+until permission, base revisions, idempotency and audit are enforced on the
+server.
+
 ## Backend adapters to build, in order
 
 1. **Platform BFF:** a same-origin authenticated native launch shell, Project entitlement/grant checks, schema-defined config projection, `cache-control:no-store`, CSP for immutable script bundles, no privileged tokens in JS.
