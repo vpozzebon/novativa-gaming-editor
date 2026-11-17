@@ -12,7 +12,7 @@ on:
     branches: [develop]
     paths:
       - 'src/novativa/**'
-      - 'test/novativa-native-bootstrap.test.mjs'
+      - 'test/novativa-*.test.mjs'
       - 'docs/novativa-native-editor-backend-v1.md'
       - '.github/workflows/novativa-native-contract.yml'
 
