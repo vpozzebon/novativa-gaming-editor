@@ -1,7 +1,9 @@
 import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.once('load', () => {
     const permissions = {};
+    const novativaReadOnly = isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href);
 
     // cache permissions in a dictionary
     ['read', 'write', 'admin'].forEach((access: 'read' | 'write' | 'admin') => {
@@ -22,6 +24,7 @@ editor.once('load', () => {
     });
 
     editor.method('permissions:write', (userId?: string) => {
+        if (novativaReadOnly) return false;
         if (!userId) {
             userId = config.self.id;
         }
@@ -30,6 +33,7 @@ editor.once('load', () => {
     });
 
     editor.method('permissions:admin', (userId?: string) => {
+        if (novativaReadOnly) return false;
         if (!userId) {
             userId = config.self.id;
         }
@@ -105,7 +109,8 @@ editor.once('load', () => {
         const connection = editor.call('realtime:connection');
         editor.emit(
             'permissions:writeState',
-            connection && connection.state === 'connected' && (accessLevel === 'write' || accessLevel === 'admin')
+            !novativaReadOnly && connection && connection.state === 'connected' &&
+            (accessLevel === 'write' || accessLevel === 'admin')
         );
     });
 

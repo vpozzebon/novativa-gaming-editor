@@ -1,6 +1,7 @@
 import { Events } from '@playcanvas/observer';
 import { type } from 'ot-text';
 import * as share from 'sharedb/lib/client/index';
+import { isNovativaReadOnlyRealtime } from '../../novativa/native-read-only-runtime.mjs';
 share.types.register(type);
 
 import { Deferred } from '../deferred';
@@ -56,6 +57,8 @@ class RealtimeConnection extends Events {
     private _state: 'connecting' | 'connected' | 'disconnected' = 'disconnected';
 
     private _authenticated = false;
+
+    private _novativaReadOnly = false;
 
     private _active: Deferred<WebSocket> = new Deferred<WebSocket>();
 
@@ -224,6 +227,7 @@ class RealtimeConnection extends Events {
         }
 
         this._url = url;
+        this._novativaReadOnly = isNovativaReadOnlyRealtime(url, document.location.href);
         this._state = 'connecting';
 
         if (this._reconnectAttempts > MAX_ATTEMPTS) {
@@ -243,7 +247,8 @@ class RealtimeConnection extends Events {
             this._state = 'connected';
             this._reconnectAttempts = 0;
 
-            socket.send(`auth${JSON.stringify({ accessToken: api.accessToken })}`);
+            socket.send(this._novativaReadOnly ? 'auth{}' :
+                `auth${JSON.stringify({ accessToken: api.accessToken })}`);
 
             this._realtime.emit('connected');
         });
@@ -278,6 +283,10 @@ class RealtimeConnection extends Events {
 
             this._realtime.emit('disconnect', reason);
 
+            if (this._novativaReadOnly && reason.code === 1008) {
+                this._url = '';
+                return;
+            }
             this._realtime.emit('nextAttempt', this._reconnectInterval);
 
             if (!document.hidden) {
@@ -360,6 +369,10 @@ class RealtimeConnection extends Events {
      */
     get authenticated() {
         return this._authenticated;
+    }
+
+    get novativaReadOnly() {
+        return this._novativaReadOnly;
     }
 
     /**
