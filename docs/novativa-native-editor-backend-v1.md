@@ -84,3 +84,36 @@ current state closed. The Platform BFF counterpart returns a truthful
 `GET /api/projects/:projectId/gaming/editor/native/runtime?gameId=...&sceneId=...`
 with `native_ids:null`, `can_open:false`, `native_config:null` and unavailable
 realtime services. This is a **working BFF endpoint**, not a launched Editor.
+
+
+## Native PlayCanvas scene entity read model (18/11/2026)
+
+The original upstream code at `src/editor/entities/entities-load.ts` expects a ShareDB
+`scene:raw` event with `data.entities` as a map. Its `Entity` class expects
+`resource_id`, `parent`, `children`, `position`, `rotation`, `scale`,
+`components`, `enabled`, tags and template metadata. Importantly, the
+upstream `src/editor-api/realtime/scene.ts` can submit ShareDB ops to mutate
+entities; a synthetic local scene must **never** be mistaken for an authenticated
+writable server document.
+
+Implemented `src/novativa/native-scene-snapshot.mjs` to translate the
+existing authorized `novativa.playcanvas.canonical-hierarchy.v1` to these
+PlayCanvas entity fields **for read-only inspection**. A safe
+`src/novativa/native-scene-read-client.mjs` composes a same-origin authenticated
+BFF fetch with that conversion. The root contains canonical binding IDs,
+unchanged local transform values and separate immutable asset references.
+It marks all entities `enabled:false` and `spatiallyLocated:false`
+because the Racing title owns absolute anchor locations; rendering them
+all at a fabricated origin would be incorrect. A null local transform is
+represented by identity only in the view and explicitly marked not authored.
+
+This is a tested projection **not** a working native PlayCanvas session. It
+does not create a ShareDB scene, subscribe to realtime, edit assets or publish
+scene changes. For native Editor startup, implement an authorized server-side
+ShareDB document/operation adapter with stable scene aliases, scene snapshots,
+permission revocation and append-only Gaming writes. Its `scene:raw` must
+be bound to that server transport, not an untrusted browser-generated event.
+The server must reject every mutation until corresponding Gaming commands,
+revision-based concurrency and audit are installed. Do not substitute this
+client module for a real backend.
+

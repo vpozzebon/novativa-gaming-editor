@@ -31,5 +31,7 @@ jobs:
       - run: node --check src/novativa/native-editor-bootstrap.mjs
       - run: node --check src/novativa/canonical-scene-projection.mjs
       - run: node --check src/novativa/native-hierarchy-client.mjs
+      - run: node --check src/novativa/native-scene-snapshot.mjs
+      - run: node --check src/novativa/native-scene-read-client.mjs
       - run: node --check src/novativa/native-runtime-contract.mjs
-      - run: node --test test/novativa-native-bootstrap.test.mjs test/novativa-scene-projection.test.mjs test/novativa-native-hierarchy-client.test.mjs test/novativa-native-runtime-contract.test.mjs
+      - run: node --test test/novativa-native-bootstrap.test.mjs test/novativa-scene-projection.test.mjs test/novativa-native-hierarchy-client.test.mjs test/novativa-native-scene-snapshot.test.mjs test/novativa-native-scene-read-client.test.mjs test/novativa-native-runtime-contract.test.mjs
