@@ -117,3 +117,24 @@ The server must reject every mutation until corresponding Gaming commands,
 revision-based concurrency and audit are installed. Do not substitute this
 client module for a real backend.
 
+
+
+## Server-owned scene read route (18/11/2026)
+
+The native client now retrieves the Platform-owned snapshot rather than
+constructing its authority from a browser-only hierarchy:
+
+`GET /api/projects/:projectId/gaming/editor/native/scenes/:sceneId/snapshot?gameId=...`
+
+Platform PR #143 creates a server-side `data.entities` map from the current
+authorized Gaming document and advertises it as `urls.scene_snapshot` in
+`novativa.playcanvas.native-runtime.v1`. The client validates its
+`novativa.playcanvas.server-scene-snapshot.v1` response, scene/game scope,
+read-only marker, disabled entities, canonical binding references, and absence
+of native ShareDB availability. Cross-project access is always authorized
+by Platform using the existing Genesis session and server-side tenancy.
+
+`loadNovativaNativeSceneReadOnly` does **not** emit `scene:raw`, create a
+fake ShareDB socket or enable collaboration/writes. Full PlayCanvas native
+startup still needs a genuine authorized realtime transport with stable
+scene identifiers and server-enforced append-only Gaming operations.
