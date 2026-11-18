@@ -64,7 +64,11 @@ class RealtimeScene extends Events {
         this._document.on('error', this._onError.bind(this));
         this._document.on('load', this._onLoad.bind(this));
 
-        this._evtConnection = this._realtime.on('disconnect', this.unload.bind(this));
+        this._evtConnection = this._realtime.on('disconnect', (reason: CloseEvent) => {
+            if (!this._connection.novativaReadOnly || reason?.code === 1008 || reason?.code === 1012) {
+                this.unload();
+            }
+        });
 
         this._document.subscribe();
     }
@@ -81,7 +85,9 @@ class RealtimeScene extends Events {
         this._document = null;
         this._loaded = false;
 
-        this._connection.send(`close:scene:${this._uniqueId}`);
+        if (!this._connection.novativaReadOnly) {
+            this._connection.send(`close:scene:${this._uniqueId}`);
+        }
 
         this._evtConnection.unbind();
         this._evtConnection = null;
@@ -119,7 +125,7 @@ class RealtimeScene extends Events {
      * @param op - The operation
      */
     submitOp(op: object) {
-        if (!this._loaded) {
+        if (!this._loaded || this._connection.novativaReadOnly) {
             return;
         }
 

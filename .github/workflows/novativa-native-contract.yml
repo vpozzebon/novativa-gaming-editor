@@ -35,3 +35,23 @@ jobs:
       - run: node --check src/novativa/native-scene-read-client.mjs
       - run: node --check src/novativa/native-runtime-contract.mjs
       - run: node --test test/novativa-native-bootstrap.test.mjs test/novativa-scene-projection.test.mjs test/novativa-native-hierarchy-client.test.mjs test/novativa-native-scene-snapshot.test.mjs test/novativa-native-scene-read-client.test.mjs test/novativa-native-runtime-contract.test.mjs
+      - run: node --test test/novativa-native-read-only-runtime.test.mjs
+      - name: Exercise the original ShareDB scene client
+        run: |
+          install_dir="$(mktemp -d)"
+          npm install --prefix "$install_dir" --no-save --no-audit --no-fund tsx@4 mocha@11 chai@5 @playcanvas/observer@1.8.1 sharedb@3.3.2
+          ln -s "$install_dir/node_modules" node_modules
+          node --import tsx node_modules/mocha/bin/mocha.js --no-config --no-package test/editor-api/realtime/scene.test.ts
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: test -s dist/js/editor.js && test -s dist/css/editor.css

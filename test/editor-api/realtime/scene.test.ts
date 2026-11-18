@@ -10,15 +10,22 @@ const JSON0 = 'http://sharejs.org/types/JSONv0';
 const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
 
 // a loaded scene on a real sharedb connection whose server never answers unless told to
-const setup = async () => {
+const setup = async (novativaReadOnly = false) => {
     const sent: string[] = [];
     const socket: any = { readyState: 1, send: (data: string) => sent.push(data), close: () => undefined };
     const sharedb = new share.Connection(socket);
     const feed = (msg: object) => socket.onmessage({ data: JSON.stringify(msg) });
     feed({ a: 'hs', id: 'client', protocol: 1, protocolMinor: 1, type: JSON0 });
 
-    const realtime: any = { on: () => ({ unbind: () => undefined }), emit: () => undefined };
-    const connection: any = { getDocument: () => sharedb.get('scenes', '1'), send: () => undefined };
+    let onDisconnect: (reason: { code: number }) => void;
+    const realtime: any = {
+        on: (event: string, callback: typeof onDisconnect) => {
+            if (event === 'disconnect') onDisconnect = callback;
+            return { unbind: () => undefined };
+        },
+        emit: () => undefined
+    };
+    const connection: any = { novativaReadOnly, getDocument: () => sharedb.get('scenes', '1'), send: () => undefined };
     const scene = new RealtimeScene(1, realtime, connection);
     scene.load();
     await tick();
@@ -43,7 +50,17 @@ const setup = async () => {
         expect(done).to.equal(true);
     };
     const ops = () => sent.filter((s) => s.startsWith('{"a":"op"'));
-    return { scene, drain, ops };
+    const disconnect = (code: number) => {
+        socket.onclose({ code });
+        onDisconnect({ code });
+    };
+    const reconnect = async () => {
+        sharedb.bindToSocket(socket);
+        feed({ a: 'hs', id: 'client', protocol: 1, protocolMinor: 1, type: JSON0 });
+        await tick();
+        return JSON.parse(sent.at(-1));
+    };
+    return { scene, drain, ops, disconnect, reconnect, feed };
 };
 
 const entity = (i: number) => ({
@@ -59,6 +76,22 @@ const entity = (i: number) => ({
 
 describe('RealtimeScene', function () {
     this.timeout(10000);
+
+    it('preserves the Novativa read-only document for replay and unloads on policy revocation', async () => {
+        const { scene, ops, disconnect, reconnect, feed } = await setup(true);
+        scene.submitOp({ p: ['entities', 'forbidden'], oi: entity(1) });
+        await tick();
+        expect(ops()).to.have.lengthOf(0);
+        disconnect(1006);
+        expect(scene.loaded).to.equal(true);
+        expect(scene.data.entities).to.deep.equal({});
+        expect(await reconnect()).to.deep.equal({ a: 's', c: 'scenes', d: '1', v: 1 });
+        feed({ a: 'op', c: 'scenes', d: '1', v: 1, op: [{ p: ['entities', 'confirmed'], oi: entity(1) }] });
+        feed({ a: 's', c: 'scenes', d: '1' });
+        expect(scene.data.entities.confirmed.name).to.equal('Entity 1');
+        disconnect(1008);
+        expect(scene.loaded).to.equal(false);
+    });
 
     it('keeps every message under the server limit when many edits compose', async () => {
         const { scene, drain, ops } = await setup();
