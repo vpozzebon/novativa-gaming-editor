@@ -42,3 +42,16 @@ jobs:
           npm install --prefix "$install_dir" --no-save --no-audit --no-fund tsx@4 mocha@11 chai@5 @playcanvas/observer@1.8.1 sharedb@3.3.2
           ln -s "$install_dir/node_modules" node_modules
           node --import tsx node_modules/mocha/bin/mocha.js --no-config --no-package test/editor-api/realtime/scene.test.ts
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: test -s dist/js/editor.js && test -s dist/css/editor.css
