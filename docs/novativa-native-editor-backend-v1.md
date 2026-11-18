@@ -52,3 +52,35 @@ server.
 Do not replace the existing working Console Editor or Racing client until a real native backend has passed browser E2E. Don't copy source to a parallel database; no direct browser AWS or internal Gaming endpoints; no PlayCanvas.com credential dependency; preserve source fork and upstream extensions.
 
 Next slice is a **backend project/scene projection and authenticated shell**, not a second viewport.
+
+## 2026-11-18: upstream-native compatibility gate (implemented)
+
+Audited `src/editor-api/external-types/config.d.ts`, `src/editor-api/realtime/connection.ts`,
+`src/editor-api/realtime/scene.ts`, and `src/editor/entities/entities-load.ts`.
+
+**Critical compatibility mismatch:** upstream EditorConfig requires numeric `project.id`,
+numeric `self.id` and a numeric `scene.uniqueId`. Genesis/Novativa project,
+user and scene identifiers are canonical strings. Truncating/hashing an ID into a
+number would introduce potential collisions and a parallel identity authority.
+A dedicated server-managed, durable, uniquely indexed native alias projection is
+needed, or a deliberate upstream-wide string-ID migration; do not invent aliases
+in `window.config`.
+
+**Realtime mismatch:** the original Editor initiates a WebSocket connection,
+sends `auth{accessToken}`, waits for an authenticated ShareDB connection, subscribes
+to document collection `scenes` keyed by numeric `uniqueId`, and handles OT
+`submitOp` messages. That protocol is not supplied by the Gaming
+`SceneBindingRevision` or `SceneVisualLayoutRevision` read APIs. A real
+authenticated, authorized, base-revision-checked ShareDB compatibility service
+must map edits to canonical Gaming commands with append-only audit, or the native
+Editor must be adapted to a differently specified scene transport. Do not send a
+fake `auth` acknowledgement merely to bypass its loader.
+
+New `src/novativa/native-runtime-contract.mjs` verifies those 10 backend
+capabilities, real server-provided positive numeric aliases, a native ShareDB
+scene document, and same-origin service endpoints; tests deliberately keep the
+current state closed. The Platform BFF counterpart returns a truthful
+`novativa.playcanvas.native-runtime.v1` capability document under authenticated
+`GET /api/projects/:projectId/gaming/editor/native/runtime?gameId=...&sceneId=...`
+with `native_ids:null`, `can_open:false`, `native_config:null` and unavailable
+realtime services. This is a **working BFF endpoint**, not a launched Editor.
