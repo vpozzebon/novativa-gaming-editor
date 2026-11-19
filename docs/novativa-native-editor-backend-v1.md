@@ -149,3 +149,28 @@ A new `src/novativa/native-editor-scene-guard.mjs` is applied **only** when the 
 Tests build a 9-entity canonical fixture through the fork's existing `buildNovativaPlayCanvasReadOnlyScene` projection and exercise valid IDs, altered IDs, injected active components, malformed spatial state, and mutation-free acceptance.
 
 **This guard does not implement or fabricate a server-owned `EditorConfig`, user identity, missing messenger, native asset API, project settings, or original Editor HTML shell.** Full bootstrap `can_open:false` remains in force, as does the prohibition on writes; a successful transport diagnostic is not proof of the complete PlayCanvas UI. Only turn on native shell after compatible complete configuration and authenticated end-to-end browser validation. No production release.
+
+## 2026-11-19: Project identity read model and native schema admission
+
+Platform PR #161 introduces an authenticated, DEV-only
+`GET /api/projects/:projectId/gaming/editor/native/project-context`.
+It reports Genesis Project ID/name and the authoritative append-only aliases
+for Project and signed-in user. It never creates native settings or a Schema:
+`native_project_settings:null`, `editor_schema:null`,
+`editor_config_ready:false`. The read route has no side effects and rejects
+cross-tenant, anonymous and unauthorized contexts.
+
+This fork's `src/novativa/native-schema-admission.mjs` is a **structural
+preflight** for an *actual* future PlayCanvas schema catalog, not a catalog
+generator. It checks the v1 document contracts consumed by the original
+`Schema`, `SceneSchema`, `ComponentSchema`, `AssetsSchema` and
+`SettingsSchema`. A valid structure is necessary but insufficient: it
+must be sourced from a versioned, server-trusted catalog and must not alone
+activate `window.config`, scene editing, or the Editor shell.
+
+Next: identify or implement the authoritative schema source (including asset
+and entity component definitions plus project-scoped settings) and an
+authenticated, immutable schema delivery route with provenance/version/digest.
+Only afterward construct an original EditorConfig from server-authorized
+project/user/scene and real settings; retain explicit capability checks for
+assets, realtime, messenger events and writes. Never synthesize missing fields.
