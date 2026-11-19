@@ -202,6 +202,17 @@ class Messenger extends Events {
         this._ping();
     }
 
+    /**
+     * DEV native messenger uses the server-validated Genesis session cookie.
+     * The native endpoint never accepts or needs a browser bearer token.
+     */
+    authenticateNovativaCookie() {
+        if (!this._connected) {
+            return;
+        }
+        this.send({name: 'authenticate', type: 'designer'});
+    }
+
     authenticate(accessToken: string, type: string) {
         if (!this._connected) {
             return;
