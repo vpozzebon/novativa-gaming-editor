@@ -1,5 +1,7 @@
 import { createLog } from '@/common/sentry';
 import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
+import { assertNovativaReadonlyEditorScene } from '@/novativa/native-editor-scene-guard.mjs';
 
 const log = createLog('<PATH>');
 
@@ -81,6 +83,16 @@ editor.once('start', () => {
     });
 
     realtime.on('load:scene', (scene: { id: string; uniqueId: string; data: unknown }) => {
+        // The native Novativa pilot reuses upstream RealtimeScene and EntitiesTreeView.
+        // Do not hydrate any entity from an invalid or foreign persistent scene.
+        if (isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href)) {
+            try {
+                assertNovativaReadonlyEditorScene(scene, config.scene.uniqueId);
+            } catch (error) {
+                editor.emit('realtime:scene:error', error);
+                return;
+            }
+        }
         editor.emit('scene:load', scene.id, scene.uniqueId);
         editor.emit('scene:raw', scene.data);
     });
