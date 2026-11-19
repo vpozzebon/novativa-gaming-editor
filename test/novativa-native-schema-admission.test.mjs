@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {inspectNovativaNativeSchemaCatalog,requireNovativaNativeSchemaPreflight}
  from '../src/novativa/native-schema-admission.mjs';
 
@@ -67,4 +69,14 @@ test('schema preflight remains non-launchable and denies forged scope',()=>{
   schema:'novativa.playcanvas.native-schema.v1',environment:'dev',
   editor_config_ready:false,read_only:true,project_id:'prj_gaming',catalog:{version:1},
  }),/NOVATIVA_NATIVE_SCHEMA_INCOMPLETE/);
+});
+
+test('the pinned PlayCanvas scene catalog is complete for native schema admission',async()=>{
+ const bytes=await readFile(new URL('../catalogs/playcanvas/schema-v1.json',import.meta.url));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),
+  '8041b5150aab252ecc94be5ca9c50c5c307caf679baece1a3200ba522a8a2ccb');
+ const snapshot=JSON.parse(bytes);
+ assert.deepEqual(inspectNovativaNativeSchemaCatalog(snapshot),{structurallyValid:true,missing:[]});
+ assert.equal(Object.keys(snapshot.assetData).length,14);
+ assert.equal(Object.keys(snapshot.documents.scene.properties.entities.additionalProperties.properties.components.properties).length,24);
 });
