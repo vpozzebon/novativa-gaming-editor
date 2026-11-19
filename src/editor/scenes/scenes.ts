@@ -1,4 +1,6 @@
 import { backend, UNSUPPORTED } from '@/common/backend';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
+import { fetchNovativaUpstreamScene } from '@/novativa/native-scene-rest-adapter.mjs';
 
 editor.once('load', () => {
     // Fetch list of scenes from the server and
@@ -12,6 +14,16 @@ editor.once('load', () => {
 
     // Get a specific scene from the server and pass result to callback
     editor.method('scenes:get', (sceneId: string, callback?: (err: unknown, data?: unknown) => void) => {
+        // The original Editor's scene navigation must resolve the server-owned
+        // native ID, not call the public PlayCanvas API for Novativa scenes.
+        if (isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href)) {
+            fetchNovativaUpstreamScene({
+                realtimeUrl: config.url.realtime.http,
+                pageUrl: window.location.href,
+                requestedSceneId: sceneId
+            }).then(scene => callback?.(null, scene)).catch(error => callback?.(error));
+            return;
+        }
         editor.api.globals.rest.scenes
             .sceneGet(Number(sceneId))
             .on('error', (_status: number, data: unknown) => {
