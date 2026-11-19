@@ -47,9 +47,10 @@ jobs:
       - run: node --check src/novativa/native-scene-descriptor-client.mjs
       - run: node --check src/novativa/native-scene-rest-adapter.mjs
       - run: node --check src/novativa/native-read-only-messenger.mjs
+      - run: node --check src/novativa/native-schema-admission.mjs
       - run: node --check src/novativa/native-editor-scene-guard.mjs
       - run: node --test test/novativa-native-bootstrap.test.mjs test/novativa-scene-projection.test.mjs test/novativa-native-hierarchy-client.test.mjs test/novativa-native-scene-snapshot.test.mjs test/novativa-native-scene-read-client.test.mjs test/novativa-native-runtime-contract.test.mjs
-      - run: node --test test/novativa-native-read-only-runtime.test.mjs test/novativa-native-editor-scene-guard.test.mjs test/novativa-native-scene-descriptor-client.test.mjs test/novativa-native-scene-rest-adapter.test.mjs test/novativa-native-messenger-cookie-auth.test.mjs
+      - run: node --test test/novativa-native-read-only-runtime.test.mjs test/novativa-native-editor-scene-guard.test.mjs test/novativa-native-scene-descriptor-client.test.mjs test/novativa-native-scene-rest-adapter.test.mjs test/novativa-native-messenger-cookie-auth.test.mjs test/novativa-native-schema-admission.test.mjs
       - name: Exercise the original ShareDB scene client
         run: |
           install_dir="$(mktemp -d)"
