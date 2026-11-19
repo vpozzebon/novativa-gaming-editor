@@ -1,6 +1,7 @@
 import { Events } from '@playcanvas/observer';
 
 import { globals as api } from './globals';
+import { isNovativaReadOnlyMessenger } from '../novativa/native-read-only-messenger.mjs';
 
 /**
  * The MessagerClient interface extends the Events class and defines the methods and properties
@@ -24,6 +25,7 @@ export type MessagerClient = Events & {
      * @param role - The role for authentication.
      */
     authenticate(accessToken: string, role: string): void;
+    authenticateNovativaCookie?: () => void;
 
     /**
      * Watches the specified project.
@@ -61,7 +63,16 @@ class Messenger extends Events {
     }
 
     private _onConnect() {
-        this._messenger.authenticate(api.accessToken, 'designer');
+        // Original PlayCanvas bearer-token auth is not valid authority over
+        // Genesis: the native route authenticates the existing signed Cookie.
+        if (isNovativaReadOnlyMessenger(this._url, window.location.href)) {
+            if (!this._messenger.authenticateNovativaCookie) {
+                throw new Error('NOVATIVA_MESSENGER_COOKIE_AUTH_UNAVAILABLE');
+            }
+            this._messenger.authenticateNovativaCookie();
+        } else {
+            this._messenger.authenticate(api.accessToken, 'designer');
+        }
         this.emit('connected');
     }
 
