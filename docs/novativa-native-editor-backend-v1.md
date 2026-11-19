@@ -138,3 +138,14 @@ by Platform using the existing Genesis session and server-side tenancy.
 fake ShareDB socket or enable collaboration/writes. Full PlayCanvas native
 startup still needs a genuine authorized realtime transport with stable
 scene identifiers and server-enforced append-only Gaming operations.
+
+
+## DEV native Editor hierarchy hydration gate — 19/11/2026
+
+An authenticated user in Novativa Console successfully observed persistent ShareDB scene `vale-ambar`, revision `40`, with **9 entities**. The read-only Game and Scene remain authority of the Gaming and the Platform. The fork's native path already connects `RealtimeConnection` -> `RealtimeScenes.load` -> `RealtimeScene` -> `editor.emit('scene:raw')` -> `entities:load` -> original `EntitiesTreeView` when the **full native editor** is safely bootstrapped.
+
+A new `src/novativa/native-editor-scene-guard.mjs` is applied **only** when the upstream Editor's realtime URL is the strict, same-origin, persistent Novativa DEV websocket. Before forwarding `load:scene` into the existing original PlayCanvas entities loader, it rejects foreign/non-numeric scene identities, mismatched canonical numeric IDs, missing root/children, malformed transforms, unexpected active entities or components, and invalid parent relationships. Rejection emits `realtime:scene:error` and does not hydrate the hierarchy. Standard PlayCanvas operation outside the Novativa socket is unchanged.
+
+Tests build a 9-entity canonical fixture through the fork's existing `buildNovativaPlayCanvasReadOnlyScene` projection and exercise valid IDs, altered IDs, injected active components, malformed spatial state, and mutation-free acceptance.
+
+**This guard does not implement or fabricate a server-owned `EditorConfig`, user identity, missing messenger, native asset API, project settings, or original Editor HTML shell.** Full bootstrap `can_open:false` remains in force, as does the prohibition on writes; a successful transport diagnostic is not proof of the complete PlayCanvas UI. Only turn on native shell after compatible complete configuration and authenticated end-to-end browser validation. No production release.
