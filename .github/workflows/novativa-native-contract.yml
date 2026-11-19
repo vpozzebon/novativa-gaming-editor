@@ -5,6 +5,11 @@ on:
     branches: [develop]
     paths:
       - 'src/novativa/**'
+      - 'src/editor/**'
+      - 'src/editor-api/**'
+      - 'vite.config.mjs'
+      - 'package-lock.json'
+      - 'sass/**'
       - 'test/novativa-*.test.mjs'
       - 'docs/novativa-native-editor-backend-v1.md'
       - '.github/workflows/novativa-native-contract.yml'
@@ -12,6 +17,11 @@ on:
     branches: [develop]
     paths:
       - 'src/novativa/**'
+      - 'src/editor/**'
+      - 'src/editor-api/**'
+      - 'vite.config.mjs'
+      - 'package-lock.json'
+      - 'sass/**'
       - 'test/novativa-*.test.mjs'
       - 'docs/novativa-native-editor-backend-v1.md'
       - '.github/workflows/novativa-native-contract.yml'
@@ -55,3 +65,13 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: test -s dist/js/editor.js && test -s dist/css/editor.css
+      - name: Produce immutable DEV release inventory
+        run: node scripts/novativa-native-artifact-manifest.mjs
+      - name: Upload candidate bundle (no deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: novativa-playcanvas-native-dev-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
