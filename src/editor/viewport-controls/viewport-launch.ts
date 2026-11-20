@@ -2,6 +2,7 @@ import { Container, Button, BooleanInput, Label, Divider } from '@playcanvas/pcu
 
 import { TooltipHandle } from '@/common/tooltips';
 import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.once('load', () => {
     const root = editor.call('layout.root');
@@ -11,6 +12,7 @@ editor.once('load', () => {
     const settings = editor.call('settings:projectUser');
 
     const releaseCandidate = config.engineVersions.releaseCandidate?.version;
+    const nativeReadOnly = isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href);
 
     // panel
     const panel = new Container({
@@ -28,7 +30,7 @@ editor.once('load', () => {
         enabled: false
     });
     editor.on('scene:load', () => {
-        launch.enabled = true;
+        launch.enabled = !nativeReadOnly;
     });
     editor.on('scene:unload', () => {
         launch.enabled = false;
