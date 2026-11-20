@@ -1,4 +1,6 @@
 import { ObserverSync } from '@/common/observer-sync';
+import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.once('load', () => {
     const legacyScripts = editor.call('settings:project').get('useLegacyScripts');
@@ -52,6 +54,9 @@ editor.once('load', () => {
 
     // load all assets
     editor.on('realtime:authenticated', () => {
+        if (isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href)) {
+            return;
+        }
         editor.call('assets:clear');
 
         if (timeoutLoad) {

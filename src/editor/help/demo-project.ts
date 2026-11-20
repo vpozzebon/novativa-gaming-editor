@@ -14,7 +14,7 @@ editor.once('load', () => {
     }
 
     // do not show if not owner
-    if (config.owner.id !== config.self.id) {
+    if (config.owner?.id !== config.self.id) {
         return;
     }
 

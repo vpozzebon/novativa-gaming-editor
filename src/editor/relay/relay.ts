@@ -1,9 +1,11 @@
 import { backend } from '@/common/backend';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.on('start', () => {
     const relay = backend().relay;
 
-    if (editor.call('permissions:read')) {
+    if (!isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href) &&
+        editor.call('permissions:read')) {
         relay.connect(config.url.relay.ws);
     }
 
