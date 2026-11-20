@@ -1,6 +1,7 @@
 import { ObserverHistory } from '@playcanvas/observer';
 
 import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.once('load', () => {
     // this used to have facebook settings
@@ -22,6 +23,10 @@ editor.once('load', () => {
         item: settings,
         history: editor.api.globals.history
     });
+
+    if (isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href)) {
+        return;
+    }
 
     const reload = function () {
         if (!isConnected) {
