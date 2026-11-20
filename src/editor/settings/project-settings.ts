@@ -13,15 +13,18 @@ import {
 import { unsetLocal } from '@/common/observer-unset';
 import { deepCopy, formatter as f, insert, remove, set, unset } from '@/common/utils';
 import { config } from '@/editor/config';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 editor.once('load', () => {
     const schema = editor.api.globals.schema;
-    const projectSettings = Object.assign(schema.settings.getDefaultProjectSettings(), config.project.settings);
+    const defaults = schema.settings.getDefaultProjectSettings();
+    const projectSettings = { ...defaults, ...config.project.settings };
 
     const settings = editor.call('settings:create', {
         name: 'project',
         id: config.project.settings.id,
-        data: projectSettings
+        data: projectSettings,
+        defaults
     });
 
     script.legacy = !!settings.get('useLegacyScripts');
@@ -45,6 +48,10 @@ editor.once('load', () => {
     settings.on('*:remove', (path, _value, index) => {
         remove(config.project.settings, path, index);
     });
+
+    if (isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href)) {
+        return;
+    }
 
     // migrations
     editor.on('settings:project:load', (data) => {

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {isNovativaProjectSettingsDocument,projectNovativaReadOnlySettings}
+    from '../src/novativa/native-project-settings.mjs';
 import {inspectNovativaReadOnlyRuntime,isNovativaReadOnlyRealtime,loadNovativaReadOnlyRuntime}
     from '../src/novativa/native-read-only-runtime.mjs';
 
@@ -40,4 +42,31 @@ test('fails closed for cross-project, write-enabled or external asset manifests'
     const external=fixture();
     external.read_only_scene.assets[0].url='https://external.example/model.glb';
     assert.throws(()=>inspectNovativaReadOnlyRuntime(external,scope));
+});
+
+const branchId = 'racing-settings-smoke-20261119';
+const documentId = `nps_${'a'.repeat(64)}.${branchId}`;
+const defaults = { antiAlias: true, height: 720, useDevicePixelRatio: false, width: 1280 };
+
+test('only admits a native Project settings document for the current branch', () => {
+    assert.equal(isNovativaProjectSettingsDocument(documentId, branchId), true);
+    assert.equal(isNovativaProjectSettingsDocument(documentId, 'other-branch'), false);
+    assert.equal(isNovativaProjectSettingsDocument('project_7_12', branchId), false);
+});
+
+test('replaces overrides and restores attested defaults even after a missed revision', () => {
+    assert.deepEqual(projectNovativaReadOnlySettings({ antiAlias: false, width: 1600 }, defaults), {
+        ...defaults, antiAlias: false, width: 1600
+    });
+    assert.deepEqual(projectNovativaReadOnlySettings({ height: 1080, useDevicePixelRatio: true }, defaults), {
+        ...defaults, height: 1080, useDevicePixelRatio: true
+    });
+    assert.equal(defaults.width, 1280);
+});
+
+test('rejects malformed snapshots without applying partial settings', () => {
+    for (const snapshot of [null, [], {}, { width: 0 }, { width: 8193 }, { height: '720' },
+        { antiAlias: 'false' }, { width: 1280, engineV2: true }, { ['__proto__']: true }]) {
+        assert.throws(() => projectNovativaReadOnlySettings(snapshot, defaults), /NOVATIVA_PROJECT_SETTINGS_INVALID/);
+    }
 });

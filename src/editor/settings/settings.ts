@@ -3,9 +3,12 @@ import { Observer } from '@playcanvas/observer';
 import { ObserverSync } from '@/common/observer-sync';
 import { createLog } from '@/common/sentry';
 import { formatter as f } from '@/common/utils';
+import { config } from '@/editor/config';
 import { isSchemaRejection, settingsRejection } from '@/editor/realtime/realtime-error';
 import type { OpComponent } from '@/editor/realtime/realtime-error';
 import { batchRejections } from '@/editor-api/realtime/rejections';
+import { isNovativaProjectSettingsDocument, projectNovativaReadOnlySettings } from '@/novativa/native-project-settings.mjs';
+import { isNovativaReadOnlyRealtime } from '@/novativa/native-read-only-runtime.mjs';
 
 const log = createLog('<PATH>');
 
@@ -19,6 +22,7 @@ type SettingsObserver = Observer & {
 };
 
 editor.once('load', () => {
+    const novativaReadOnly = isNovativaReadOnlyRealtime(config.url.realtime.http, window.location.href);
     editor.method('settings:create', (args) => {
         // settings observer
         const settings = new Observer(args.data) as SettingsObserver;
@@ -30,6 +34,7 @@ editor.once('load', () => {
         });
 
         let doc;
+        let localSettingsLoaded = false;
 
         // a schema rejection names the refused setting; anything else is unexpected, so report it
         const onRejected = batchRejections((err, ops: OpComponent[]) => {
@@ -43,7 +48,63 @@ editor.once('load', () => {
         });
 
         settings.reload = function () {
+            if (novativaReadOnly && args.name !== 'project') {
+                if (!localSettingsLoaded) {
+                    localSettingsLoaded = true;
+                    editor.emit(`settings:${args.name}:load`, settings.json());
+                }
+                return;
+            }
             const connection = editor.call('realtime:connection');
+
+            if (novativaReadOnly) {
+                const reportError = (error: unknown) => {
+                    log.error(error);
+                    editor.emit('settings:project:error', error);
+                };
+                if (!isNovativaProjectSettingsDocument(settings.id, config.self.branch.id)) {
+                    reportError(new Error('NOVATIVA_PROJECT_SETTINGS_DOCUMENT_INVALID'));
+                    return;
+                }
+                if (doc) {
+                    return;
+                }
+                doc = connection.get('settings', settings.id);
+                const projectDoc = doc;
+                let loaded = false;
+                const applySnapshot = () => {
+                    if (doc !== projectDoc) {
+                        return;
+                    }
+                    try {
+                        const data = projectNovativaReadOnlySettings(projectDoc.data, args.defaults);
+                        const historyEnabled = settings.history.enabled;
+                        settings.history.enabled = false;
+                        try {
+                            for (const [key, value] of Object.entries(data)) {
+                                if (value === undefined) {
+                                    settings.unset(key);
+                                } else {
+                                    settings.set(key, value);
+                                }
+                            }
+                        } finally {
+                            settings.history.enabled = historyEnabled;
+                        }
+                        if (!loaded) {
+                            loaded = true;
+                            editor.emit('settings:project:load', data);
+                        }
+                    } catch (error) {
+                        reportError(error);
+                    }
+                };
+                projectDoc.on('error', reportError);
+                projectDoc.on('load', applySnapshot);
+                projectDoc.on('op batch', applySnapshot);
+                projectDoc.subscribe();
+                return;
+            }
 
             const initialize = () => {
                 if (doc) {
